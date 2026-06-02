@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>✈️</title>
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        
+        :root {
+            --primary: #FF3B30;
+            --bg: #F5F7FA;
+            --card-bg: #FFFFFF;
+            --text: #2D3142;
+            --text-light: #9094A6;
+            --border: #EAECEF;
+            
+            --color-장소: #4CAF50;
+            --color-맛집: #FF9800;
+            --color-숙소: #9C27B0;
+            --color-교통: #2196F3;
+        }
+
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 40px 20px;
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 650px;
+            width: 100%;
+            background: var(--card-bg);
+            padding: 40px 30px;
+            border-radius: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            box-sizing: border-box;
+        }
+
+        h1 { text-align: center; font-size: 28px; font-weight: 800; margin-bottom: 5px; letter-spacing: -0.5px; }
+        .room-tag { text-align: center; font-size: 13px; color: var(--text-light); font-weight: 600; margin-bottom: 25px; }
+
+        /* 📅 일차별 & 총 경비 탭 */
+        .day-tabs {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+            margin-bottom: 25px;
+            scrollbar-width: none;
+        }
+        .day-tabs::-webkit-scrollbar { display: none; }
+        .tab {
+            padding: 12px 22px;
+            background: #EAECEF;
+            border: none;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: 0.2s;
+            color: #666;
+        }
+        .tab.active { background: var(--text); color: white; }
+        .tab.total-tab { background: #FFF3F3; color: var(--primary); border: 1px solid #FFE3E3; }
+        .tab.total-tab.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+        /* ✍️ 입력 폼 */
+        .input-form {
+            background: #F8FAFC;
+            border: 1px solid var(--border);
+            padding: 20px;
+            border-radius: 16px;
+            margin-bottom: 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            transition: all 0.3s ease;
+        }
+        .input-form.edit-mode {
+            background: #FFFDEB;
+            border: 1px solid #FFE082;
+        }
+        .form-row { display: flex; gap: 8px; flex-wrap: wrap; }
+        select, input {
+            padding: 12px 15px;
+            border: 1px solid #DDD;
+            border-radius: 10px;
+            font-size: 14px;
+            outline: none;
+            font-family: inherit;
+            box-sizing: border-box;
+        }
+        select { background: white; cursor: pointer; font-weight: bold; width: 110px; }
+        .input-main { flex: 1; min-width: 200px; }
+        .input-sub { flex: 1; min-width: 150px; }
+        .input-cost { width: 120px; }
+        input:focus, select:focus { border-color: var(--text); box-shadow: 0 0 0 2px rgba(45,49,66,0.1); }
+        
+        .submit-btn {
+            background: var(--text);
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 10px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 15px;
+        }
+        .submit-btn:hover { background: #000; }
+        .submit-btn.edit-active { background: #FFB300; color: #2D3142; }
+        .submit-btn.edit-active:hover { background: #FFA000; }
+
+        /* 🗺️ 루트 타임라인 */
+        .timeline {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+        .route-card {
+            display: flex;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.01);
+            position: relative;
+            align-items: center;
+            gap: 15px;
+            cursor: grab;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .route-card:active { cursor: grabbing; }
+        
+        .route-card.sortable-chosen { transform: scale(1.02); box-shadow: 0 10px 20px rgba(0,0,0,0.1); background: #FAFAFA; }
+        .route-card.sortable-ghost { opacity: 0.4; }
+
+        .category-bar {
+            width: 5px;
+            position: absolute;
+            left: 0; top: 0; bottom: 0;
+            border-top-left-radius: 16px;
+            border-bottom-left-radius: 16px;
+        }
+        
+        .drag-handle {
+            color: #CCC;
+            font-size: 18px;
+            cursor: grab;
+            padding-left: 5px;
+            user-select: none;
+        }
+
+        .card-content { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+        .badge {
+            font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 6px; color: white; align-self: flex-start;
+        }
+        
+        .title-link {
+            font-weight: 700; font-size: 16px; text-decoration: none; color: var(--text);
+            display: inline-flex; align-items: center; gap: 4px;
+        }
+        .title-link.has-url { color: #2196F3; }
+        .title-link.has-url:hover { text-decoration: underline; }
+        .memo-text { font-size: 13px; color: #666; word-break: break-all; }
+        
+        .cost-tag {
+            font-size: 14px; font-weight: 700; color: #E53935; white-space: nowrap;
+            background: #FFF5F5; padding: 4px 8px; border-radius: 6px;
+        }
+        
+        /* 🛠️ 액션 버튼 그룹 (연필, 엑스) */
+        .action-group { display: flex; gap: 5px; align-items: center; }
+        .edit-btn, .delete-btn {
+            background: none; border: none; color: #CCC; font-size: 20px; cursor: pointer; padding: 5px; transition: 0.2s;
+        }
+        .edit-btn:hover { color: #FFB300; }
+        .delete-btn:hover { color: var(--primary); }
+
+        /* 💰 하단 미니 정산 바 */
+        .bottom-budget-bar {
+            border-top: 2px dashed var(--border);
+            padding-top: 15px;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            color: var(--text-light);
+            font-weight: 600;
+        }
+        .bottom-budget-bar .amount {
+            font-size: 18px;
+            font-weight: 800;
+            color: #E53935;
+        }
+
+        @media (max-width: 600px) {
+            body { padding: 10px 5px; }
+            .container { padding: 25px 15px; border-radius: 16px; }
+            h1 { font-size: 22px; }
+            .tab { padding: 10px 16px; font-size: 13px; }
+            .input-form { padding: 15px; gap: 10px; margin-bottom: 15px; }
+            .form-row { flex-direction: column; gap: 10px; }
+            select, .input-cost { width: 100%; }
+            .route-card { padding: 12px; gap: 10px; }
+            .title-link { font-size: 14px; }
+            .memo-text { font-size: 12px; }
+            .cost-tag { font-size: 12px; }
+            .bottom-budget-bar { font-size: 12px; }
+            .bottom-budget-bar .amount { font-size: 16px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>🗺️✈️</h1>
+        <div class="room-tag" id="roomTag">방 ID: 로딩중...</div>
+
+        <!-- 📅 탭 목록 -->
+        <div class="day-tabs" id="dayTabs">
+            <button class="tab active" onclick="switchDay(1)">1일 차</button>
+            <button class="tab" onclick="switchDay(2)">2일 차</button>
+            <button class="tab" onclick="switchDay(3)">3일 차</button>
+            <button class="tab" onclick="switchDay(4)">4일 차</button>
+            <button class="tab total-tab" onclick="switchDay('total')">💰 총 경비</button>
+        </div>
+
+        <!-- ✍️ 입력 폼 -->
+        <div class="input-form" id="inputForm">
+            <div class="form-row">
+                <select id="category">
+                    <option value="장소">📍 장소</option>
+                    <option value="맛집">🍳 맛집</option>
+                    <option value="숙소">🏨 숙소</option>
+                    <option value="교통">🚊 교통</option>
+                </select>
+                <input type="text" id="title" class="input-main" placeholder="이름 (예: 시부야 스카이)">
+            </div>
+            <div class="form-row">
+                <input type="text" id="mapUrl" class="input-sub" placeholder="구글지도 링크 (선택)">
+                <input type="number" id="cost" class="input-cost" placeholder="비용 (원)">
+            </div>
+            <input type="text" id="memo" placeholder="간단 메모 설명 추가">
+            <button class="submit-btn" id="submitBtn">루트에 일정 추가하기 🚀</button>
+        </div>
+
+        <!-- 🗺️ 타임라인 출력창 -->
+        <div class="timeline" id="timeline"></div>
+
+        <!-- 💰 하단 미니 정산 보드 -->
+        <div class="bottom-budget-bar">
+            <span id="budgetDayText">1일 차 정산 총액:</span>
+            <span class="amount" id="totalCostDisplay">0 원</span>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+        import { getDatabase, ref, set, onValue, push, update } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyD_E1AWCr1K5DDvohRwCEliiy--o4Q2kxs",
+            authDomain: "meet-95b0a.firebaseapp.com",
+            projectId: "meet-95b0a",
+            storageBucket: "meet-95b0a.firebasestorage.app",
+            messagingSenderId: "593686175187",
+            appId: "1:593686175187:web:f4b78ba7d9e41c2f2b2326",
+            databaseURL: "https://meet-95b0a-default-rtdb.firebaseio.com"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const ROOM_ID = "travel_" + (urlParams.get('room') || 'tokyo');
+        document.getElementById('roomTag').innerText = `🏠 현재 여행 방: ${urlParams.get('room') || 'tokyo'}`;
+
+        let currentActiveDay = 1;
+        let localCardsOrder = [];
+        let sortableInstance = null;
+        let allDaysData = {}; 
+        
+        // 🌟 수정 모드 관리 변수
+        let editingCardKey = null; 
+
+        onValue(ref(db, ROOM_ID), (snapshot) => {
+            allDaysData = snapshot.val() || {};
+            loadTimelineData(); 
+        });
+
+        window.switchDay = function(day) {
+            currentActiveDay = day;
+            cancelEditMode(); // 일차 탭을 바꾸면 수정 모드 자동 취소
+            
+            document.querySelectorAll('.tab').forEach((tab) => {
+                if(day === 'total' && tab.classList.contains('total-tab')) tab.classList.add('active');
+                else if (day !== 'total' && tab.innerText.includes(day + '일')) tab.classList.add('active');
+                else tab.classList.remove('active');
+            });
+
+            const inputForm = document.getElementById('inputForm');
+            if (day === 'total') {
+                inputForm.style.display = 'none'; 
+                document.getElementById('budgetDayText').innerText = `전체 여행 총 비용:`;
+            } else {
+                inputForm.style.display = 'flex'; 
+                document.getElementById('budgetDayText').innerText = `${day}일 차 정산 총액:`;
+            }
+            loadTimelineData();
+        }
+
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.addEventListener('click', () => {
+            const category = document.getElementById('category').value;
+            const title = document.getElementById('title').value.trim();
+            const mapUrl = document.getElementById('mapUrl').value.trim();
+            const cost = parseInt(document.getElementById('cost').value) || 0;
+            const memo = document.getElementById('memo').value.trim();
+
+            if (!title) { alert("장소나 맛집 이름을 적어주세요!"); return; }
+
+            if (editingCardKey) {
+                // 🌟 [수정 모드일 때] 새 노드를 안 파고 해당 키값에 덮어쓰기 업데이트
+                const editRef = ref(db, `${ROOM_ID}/day_${currentActiveDay}/${editingCardKey}`);
+                update(editRef, {
+                    category: category,
+                    title: title,
+                    mapUrl: mapUrl,
+                    cost: cost,
+                    memo: memo
+                });
+                cancelEditMode();
+            } else {
+                // [일반 등록 모드일 때] 기존 push 로직 실행
+                const dayRef = ref(db, `${ROOM_ID}/day_${currentActiveDay}`);
+                const newCardRef = push(dayRef);
+                const currentCount = localCardsOrder.length;
+
+                set(newCardRef, {
+                    category: category,
+                    title: title,
+                    mapUrl: mapUrl,
+                    cost: cost,
+                    memo: memo,
+                    index: currentCount,
+                    timestamp: Date.now()
+                });
+            }
+
+            document.getElementById('title').value = "";
+            document.getElementById('mapUrl').value = "";
+            document.getElementById('cost').value = "";
+            document.getElementById('memo').value = "";
+        });
+
+        // 수정 모드 취소 함수
+        function cancelEditMode() {
+            editingCardKey = null;
+            const form = document.getElementById('inputForm');
+            const btn = document.getElementById('submitBtn');
+            form.classList.remove('edit-mode');
+            btn.classList.remove('edit-active');
+            btn.innerText = "루트에 일정 추가하기 🚀";
+        }
+
+        function loadTimelineData() {
+            const timelineEl = document.getElementById('timeline');
+            if (sortableInstance) { sortableInstance.destroy(); sortableInstance = null; }
+
+            if (currentActiveDay === 'total') {
+                timelineEl.innerHTML = '';
+                let categoryTotals = { "장소": 0, "맛집": 0, "숙소": 0, "교통": 0 };
+                let finalGrandTotal = 0;
+
+                for (let d = 1; d <= 4; d++) {
+                    const dayData = allDaysData[`day_${d}`] || {};
+                    Object.values(dayData).forEach(item => {
+                        if (categoryTotals[item.category] !== undefined) {
+                            categoryTotals[item.category] += (item.cost || 0);
+                            finalGrandTotal += (item.cost || 0);
+                        }
+                    });
+                }
+
+                const categoryIcons = { "장소": "📍", "맛집": "🍳", "숙소": "🏨", "교통": "🚊" };
+                Object.entries(categoryTotals).forEach(([cat, sum]) => {
+                    const card = document.createElement('div');
+                    card.className = 'route-card';
+                    card.style.cursor = 'default';
+                    card.innerHTML = `
+                        <div class="category-bar" style="background-color: var(--color-${cat})"></div>
+                        <div class="card-content" style="padding-left:10px;">
+                            <span class="badge" style="background-color: var(--color-${cat})">${cat} 합산</span>
+                            <span class="title-link" style="font-size:18px; margin-top:5px;">${categoryIcons[cat]} ${cat} 카테고리 총액</span>
+                        </div>
+                        <div class="cost-tag" style="font-size:16px;">${sum.toLocaleString()}원</div>
+                    `;
+                    timelineEl.appendChild(card);
+                });
+
+                document.getElementById('totalCostDisplay').innerText = `${finalGrandTotal.toLocaleString()} 원`;
+                return;
+            }
+
+            timelineEl.innerHTML = '';
+            const data = allDaysData[`day_${currentActiveDay}`] || {};
+            let totalCost = 0;
+
+            localCardsOrder = Object.entries(data).sort((a,b) => (a[1].index ?? 0) - (b[1].index ?? 0));
+
+            localCardsOrder.forEach(([key, val]) => {
+                totalCost += val.cost;
+
+                const card = document.createElement('div');
+                card.className = 'route-card';
+                card.dataset.id = key;
+                
+                const hasUrl = val.mapUrl && val.mapUrl.startsWith('http');
+                const titleTag = hasUrl 
+                    ? `<a href="${val.mapUrl}" target="_blank" class="title-link has-url">🔗 ${val.title}</a>`
+                    : `<span class="title-link">${val.title}</span>`;
+
+                card.innerHTML = `
+                    <div class="category-bar" style="background-color: var(--color-${val.category})"></div>
+                    <div class="drag-handle">☰</div>
+                    <div class="card-content">
+                        <span class="badge" style="background-color: var(--color-${val.category})">${val.category}</span>
+                        ${titleTag}
+                        <div class="memo-text">${val.memo || '추가 메모 없음'}</div>
+                    </div>
+                    ${val.cost > 0 ? `<div class="cost-tag">${val.cost.toLocaleString()}원</div>` : ''}
+                    <div class="action-group">
+                        <button class="edit-btn">✏️</button>
+                        <button class="delete-btn">×</button>
+                    </div>
+                `;
+
+                // 🌟 연필(수정) 버튼 기능 구현
+                card.querySelector('.edit-btn').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    editingCardKey = key;
+                    
+                    // 입력 폼에 기존 데이터 세팅
+                    document.getElementById('category').value = val.category;
+                    document.getElementById('title').value = val.title;
+                    document.getElementById('mapUrl').value = val.mapUrl || "";
+                    document.getElementById('cost').value = val.cost || "";
+                    document.getElementById('memo').value = val.memo || "";
+                    
+                    // 입력창 시각 테마를 '수정 중 상태'로 변경
+                    const form = document.getElementById('inputForm');
+                    const btn = document.getElementById('submitBtn');
+                    form.classList.add('edit-mode');
+                    btn.classList.add('edit-active');
+                    btn.innerText = "일정 수정 완료 💾";
+                    
+                    // 스크롤을 부드럽게 위로 올려서 바로 입력할 수 있게 가이드
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                });
+
+                // 삭제 버튼 기능
+                card.querySelector('.delete-btn').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if(confirm(`[${val.title}] 일정을 삭제할까요?`)) {
+                        set(ref(db, `${ROOM_ID}/day_${currentActiveDay}/${key}`), null);
+                        if (editingCardKey === key) cancelEditMode();
+                    }
+                });
+
+                timelineEl.appendChild(card);
+            });
+
+            document.getElementById('totalCostDisplay').innerText = `${totalCost.toLocaleString()} 원`;
+
+            if(localCardsOrder.length === 0) {
+                timelineEl.innerHTML = `<p style="text-align:center; color: var(--text-light); font-size:14px; padding: 15px 0;">아직 등록된 루트가 없습니다. 일정을 추가해 보세요! ✈️</p>`;
+            }
+
+            initSortable();
+        }
+
+        let isDraggingNow = false;
+
+        function initSortable() {
+            if (currentActiveDay === 'total') return;
+            const timelineEl = document.getElementById('timeline');
+
+            sortableInstance = new Sortable(timelineEl, {
+                handle: '.drag-handle',
+                animation: 250,
+                ghostClass: 'sortable-ghost',
+                chosenClass: 'sortable-chosen',
+                onStart: () => { isDraggingNow = true; },
+                onEnd: () => {
+                    isDraggingNow = false;
+                    const newOrderNodes = Array.from(timelineEl.querySelectorAll('.route-card'));
+                    newOrderNodes.forEach((node, newIndex) => {
+                        const cardId = node.dataset.id;
+                        set(ref(db, `${ROOM_ID}/day_${currentActiveDay}/${cardId}/index`), newIndex);
+                    });
+                }
+            });
+        }
+    </script>
+</body>
+</html>
